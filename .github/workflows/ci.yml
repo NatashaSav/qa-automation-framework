@@ -1,0 +1,59 @@
+name: QA Automation CI
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Typecheck and tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        id: dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        id: playwright_install
+        run: npx playwright install --with-deps chromium
+
+      - name: Run TypeScript type checking
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: npm run typecheck
+
+      - name: Run UI tests
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' && steps.playwright_install.outcome == 'success' }}
+        run: npm run test:ui
+        env:
+          UI_USERNAME: standard_user
+          UI_PASSWORD: secret_sauce
+
+      - name: Run API tests
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' && steps.playwright_install.outcome == 'success' }}
+        run: npm run test:api
+        env:
+          API_USERNAME: ${{ secrets.API_USERNAME }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+
+      - name: Upload Playwright reports and test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-and-test-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 7
