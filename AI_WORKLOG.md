@@ -290,7 +290,7 @@ Do not proceed to CI, API tests, or README changes. Wait for my review and appro
 
 **Prompt summary:** The approved prompt authorized creating only `.github/workflows/ci.yml`. It specified `actions/checkout@v4`, `actions/setup-node@v4` with Node.js 22, `npm ci`, Chromium installation with system dependencies, type checking, UI and API tests, API credentials from GitHub Actions Secrets, report/test-result artifact upload with `if: always()` and seven-day retention, and `contents: read` permissions. Triggers were push and `workflow_dispatch`; a `pull_request` trigger was explicitly excluded.
 
-**Result:** `.github/workflows/ci.yml` was created with the approved steps, triggers, permissions, and artifact paths. The workflow has not been run on GitHub.
+**Result:** `.github/workflows/ci.yml` was created with the approved steps, triggers, permissions, and artifact configuration. The workflow was subsequently executed successfully on GitHub Actions. All 8 UI tests and all 3 API tests passed. During artifact review, I discovered that the API test run overwrote the UI HTML report because both suites used the same output directory. This reporting issue was addressed separately in Prompt 16.
 
 ### 12. Final Repository Review
 
@@ -306,7 +306,7 @@ Do not proceed to CI, API tests, or README changes. Wait for my review and appro
 
 **Prompt summary:** Copilot was asked to verify push execution, manual dispatch, type checking, both test suites, artifact upload, and API Secrets handling. It was authorized to update `AGENTS.md` only if its CI trigger guidance conflicted with the assignment.
 
-**Result:** The workflow already met the requested CI behavior and was not changed. The duplicated CI trigger guidance in AGENTS.md and .github/copilot-instructions.md was updated to require push runs, allow manual runs, and make pull-request triggers assignment-dependent. I reviewed the Git diff and confirmed that only the intended CI instruction lines were changed in those two files, with no unrelated modifications. The workflow has not been run on GitHub.
+**Result:** The workflow already met the requested CI behavior and was not changed. The duplicated CI trigger guidance in AGENTS.md and .github/copilot-instructions.md was updated to require push runs, allow manual runs, and make pull-request triggers assignment-dependent. I reviewed the Git diff and confirmed that only the intended CI instruction lines were changed in those two files, with no unrelated modifications. The workflow was subsequently executed successfully on GitHub Actions.
 
 ### 14. README Creation
 
@@ -323,6 +323,14 @@ Do not proceed to CI, API tests, or README changes. Wait for my review and appro
 **Prompt summary:** Copilot was asked to check whether the successful login test uses environment variables or direct credentials, qualify API cleanup guarantees, and distinguish the documented required-field rule from expected validation behavior and observed HTTP 500 responses. Only `README.md` could be changed.
 
 **Result:** Only README wording was updated. It now distinguishes credentials passed directly by the standalone login tests from those read by the authenticated fixture, limits the cleanup statement to cases where the token and booking ID are available, and keeps the missing-field report classified as Potential because the exact error contract is undocumented. No tests were run.
+
+### 16. Separate UI and API HTML Reports
+
+**Goal:** Configure separate Playwright HTML reports for UI and API test runs and include both reports in the existing GitHub Actions artifact.
+
+**Prompt summary:** Copilot was asked to inspect the existing Playwright configuration and GitHub Actions workflow, then make only the changes strictly necessary to generate separate UI and API HTML reports. The prompt explicitly prohibited changes to test implementation files, Page Objects, fixtures, API code, test data, documentation, package files, and unrelated CI settings. It also required preserving the existing test commands, workflow triggers, permissions, execution order, environment variables, and artifact retention period.
+
+**Result:** Only `playwright.config.ts` was modified. The HTML reporter now uses `playwright-report/ui` for UI tests and `playwright-report/api` for API tests, based on the npm lifecycle event. TypeScript type checking passed, all 8 UI tests and all 3 API tests passed, and both HTML report files were generated successfully locally. The updated configuration still needs to be verified in a new GitHub Actions run.
 
 ## 4. AI Mistakes and Corrections
 
@@ -360,3 +368,4 @@ Document important technical decisions made during development and briefly expla
 - **Cleanup diagnostics:** Report the cleanup operation and HTTP status, but omit response bodies and arbitrary exception messages to reduce sensitive-data exposure.
 - **CI scope:** Use one minimal workflow on push with optional `workflow_dispatch`, and do not add a pull-request trigger unless an assignment requires one.
 - **Potential API behavior:** Record the observed missing-`lastname` HTTP 500 as Potential because the field is documented as required but its exact validation response is unspecified.
+- **Separate HTML reports:** Generate UI and API HTML reports in separate directories (`playwright-report/ui` and `playwright-report/api`) based on the npm lifecycle event. This prevents the API test run from overwriting the UI report when both suites execute in the same CI workflow.

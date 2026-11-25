@@ -4,6 +4,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const npmLifecycleEvent = process.env.npm_lifecycle_event;
+const htmlReportOutputFolder =
+    npmLifecycleEvent === 'test:ui'
+        ? 'playwright-report/ui'
+        : npmLifecycleEvent === 'test:api'
+          ? 'playwright-report/api'
+          : 'playwright-report';
+
 export default defineConfig({
     testDir: './tests',
 
@@ -15,7 +23,7 @@ export default defineConfig({
 
     reporter: [
         ['list'],
-        ['html', { open: 'never' }],
+        ['html', { open: 'never', outputFolder: htmlReportOutputFolder }],
     ],
 
     use: {
